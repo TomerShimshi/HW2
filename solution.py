@@ -33,6 +33,41 @@ class Solution:
                                 num_of_cols,
                                 len(disparity_values)))
         """INSERT YOUR CODE HERE"""
+
+        # now iv leard that we need to use the convolve2d func so we couled solve accordinley
+        kernel= np.ones((win_size,win_size))
+        for dis in disparity_values:
+            temp_kernel=kernel*dis
+            for color in range(3):
+                #now we can sum over the colors
+                temp =(convolve2d(left_image[:,:,color],kernel,mode='same')-convolve2d(right_image[:,:,color],temp_kernel,mode='same'))**2#,boundary='symm'))**2
+                ssdd_tensor[:,:,dis]+= temp
+        '''
+        # first we go over evry pixl in the photo
+        for row in range(num_of_rows):
+            for col in range(num_of_cols):
+                #now for evry pixl we need to calculate the ssd for evry disparity
+                # option
+                for dis in disparity_values:
+                    #now we calc the disparity in the wanted window
+                    for x in range (win_size):
+                        #now we need to check that the current part of the window
+                        #is whitin the photo lomits
+                        if (row + x +dis) >=0 and (row + x +dis)< num_of_rows:
+                            # if so check the the y val
+                            for y in range (win_size):
+                                if (col +y +dis) < num_of_cols and  (col +y +dis)>= 0:
+                                    # the current pixl is whitin the photo bounds
+                                    #so now we need to sum over the RGB vals
+                                    for color in range(3):
+                                        temp =  (left_image[row,col,color] -right_image[row+x+dis,col +y +dis,color])**2
+                                        ssdd_tensor[row,col,dis] +=temp
+
+        '''                
+
+                     
+
+
         ssdd_tensor -= ssdd_tensor.min()
         ssdd_tensor /= ssdd_tensor.max()
         ssdd_tensor *= 255.0

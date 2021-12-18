@@ -6,6 +6,8 @@ import matplotlib.image as mpimg
 from solution import Solution
 
 
+
+
 COST1 = 0.5
 COST2 = 3.0
 WIN_SIZE = 3
@@ -13,8 +15,8 @@ DISPARITY_RANGE = 20
 ##########################################################
 # Don't forget to fill in your IDs!!!
 # students' IDs:
-ID1 = '123456789'
-ID2 = '987654321'
+ID1 = '203200480'
+ID2 = '308537034'
 ##########################################################
 
 
@@ -55,8 +57,8 @@ def main():
     tt = tic()
     ssdd = solution.ssd_distance(left_image.astype(np.float64),
                                  right_image.astype(np.float64),
-                                 win_size=WIN_SIZE,
-                                 dsp_range=DISPARITY_RANGE)
+                                 win_size=3,#WIN_SIZE,
+                                 dsp_range=  20)#DISPARITY_RANGE)
     print(f"SSDD calculation done in {toc(tt):.4f}[seconds]")
 
     # Construct naive disparity image
