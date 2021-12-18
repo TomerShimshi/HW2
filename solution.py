@@ -38,9 +38,10 @@ class Solution:
         kernel= np.ones((win_size,win_size))
         for dis in disparity_values:
             temp_kernel=kernel*dis
+            temp_right_img=np.roll (right_image,dis)
             for color in range(3):
                 #now we can sum over the colors
-                temp =(convolve2d(left_image[:,:,color],kernel,mode='same')-convolve2d(right_image[:,:,color],temp_kernel,mode='same'))**2#,boundary='symm'))**2
+                temp =(convolve2d(left_image[:,:,color],kernel,mode='same')-convolve2d(temp_right_img[:,:,color],kernel,mode='same'))**2#,boundary='symm'))**2
                 ssdd_tensor[:,:,dis]+= temp
         '''
         # first we go over evry pixl in the photo
@@ -91,7 +92,14 @@ class Solution:
         """
         # you can erase the label_no_smooth initialization.
         label_no_smooth = np.zeros((ssdd_tensor.shape[0], ssdd_tensor.shape[1]))
+        
+
         """INSERT YOUR CODE HERE"""
+        for i in range(ssdd_tensor.shape[0]):
+            for j in range(ssdd_tensor.shape[1]):
+                min = np.amin(ssdd_tensor[i,j])
+                temp = np.where(ssdd_tensor[i,j] == min)   
+                label_no_smooth[i,j] = np.argmin(ssdd_tensor[i,j,:])
         return label_no_smooth
 
     @staticmethod
