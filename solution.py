@@ -39,9 +39,12 @@ class Solution:
         for dis in disparity_values:
             temp_kernel=kernel*dis
             temp_right_img=np.roll (right_image,dis)
+            calc_movment= (left_image-temp_right_img)**2
             for color in range(3):
                 #now we can sum over the colors
-                temp =(convolve2d(left_image[:,:,color],kernel,mode='same')-convolve2d(temp_right_img[:,:,color],kernel,mode='same'))**2#,boundary='symm'))**2
+                
+                #temp =(convolve2d(left_image[:,:,color],kernel,mode='same')-convolve2d(temp_right_img[:,:,color],kernel,mode='same'))**2#,boundary='symm'))**2
+                temp =convolve2d(calc_movment[:,:,color],kernel,mode='same')
                 ssdd_tensor[:,:,dis]+= temp
         '''
         # first we go over evry pixl in the photo
