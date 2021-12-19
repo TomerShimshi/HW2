@@ -1,6 +1,7 @@
 """Stereo matching."""
 import numpy as np
 from scipy.signal import convolve2d
+import matplotlib.pyplot as plt
 
 
 class Solution:
@@ -38,10 +39,16 @@ class Solution:
         kernel= np.ones((win_size,win_size))
         #pad_width=()
         new_rigt_image=np.pad(right_image, [dsp_range,dsp_range], mode='constant', constant_values=(0, 0))
+        new_rigt_image=new_rigt_image[dsp_range:-dsp_range,:,dsp_range:-dsp_range]
         for dis in disparity_values:
-            temp_kernel=kernel*dis
-            temp_right_img=np.roll (new_rigt_image,dis)
-            temp_right_img=temp_right_img[dsp_range:-dsp_range,:,:]
+            
+            temp_right_img=np.roll (new_rigt_image,dis,axis=1)
+            print('temp_right_img. max() ={}'.format(temp_right_img.max()))
+            #plt.figure()
+        
+            #plt.imshow(temp_right_img)
+            temp_right_img=temp_right_img[:,dsp_range:-dsp_range,:]
+            
             calc_movment= (left_image-temp_right_img)**2
             for color in range(3):
                 #now we can sum over the colors
@@ -106,7 +113,7 @@ class Solution:
                 min = np.amin(ssdd_tensor[i,j])
                 temp = np.where(ssdd_tensor[i,j] == min)   
                 label_no_smooth[i,j] = np.argmin(ssdd_tensor[i,j,:])
-        return label_no_smooth
+        return label_no_smooth.astype(int)
 
     @staticmethod
     def dp_grade_slice(c_slice: np.ndarray, p1: float, p2: float) -> np.ndarray:
