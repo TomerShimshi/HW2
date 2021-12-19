@@ -36,9 +36,12 @@ class Solution:
 
         # now iv leard that we need to use the convolve2d func so we couled solve accordinley
         kernel= np.ones((win_size,win_size))
+        #pad_width=()
+        new_rigt_image=np.pad(right_image, [dsp_range,dsp_range], mode='constant', constant_values=(0, 0))
         for dis in disparity_values:
             temp_kernel=kernel*dis
-            temp_right_img=np.roll (right_image,dis)
+            temp_right_img=np.roll (new_rigt_image,dis)
+            temp_right_img=temp_right_img[dsp_range:-dsp_range,:,:]
             calc_movment= (left_image-temp_right_img)**2
             for color in range(3):
                 #now we can sum over the colors
