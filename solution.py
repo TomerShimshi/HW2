@@ -2,6 +2,7 @@
 import numpy as np
 from scipy.signal import convolve2d
 import matplotlib.pyplot as plt
+from scipy.ndimage import rotate
 
 
 class Solution:
@@ -43,7 +44,6 @@ class Solution:
         for dis in disparity_values:
             
             temp_right_img=np.roll (new_rigt_image,dis,axis=1)
-            print('temp_right_img. max() ={}'.format(temp_right_img.max()))
             #plt.figure()
         
             #plt.imshow(temp_right_img)
@@ -55,32 +55,7 @@ class Solution:
                 
                 #temp =(convolve2d(left_image[:,:,color],kernel,mode='same')-convolve2d(temp_right_img[:,:,color],kernel,mode='same'))**2#,boundary='symm'))**2
                 temp =convolve2d(calc_movment[:,:,color],kernel,mode='same')
-                ssdd_tensor[:,:,dis]+= temp
-        '''
-        # first we go over evry pixl in the photo
-        for row in range(num_of_rows):
-            for col in range(num_of_cols):
-                #now for evry pixl we need to calculate the ssd for evry disparity
-                # option
-                for dis in disparity_values:
-                    #now we calc the disparity in the wanted window
-                    for x in range (win_size):
-                        #now we need to check that the current part of the window
-                        #is whitin the photo lomits
-                        if (row + x +dis) >=0 and (row + x +dis)< num_of_rows:
-                            # if so check the the y val
-                            for y in range (win_size):
-                                if (col +y +dis) < num_of_cols and  (col +y +dis)>= 0:
-                                    # the current pixl is whitin the photo bounds
-                                    #so now we need to sum over the RGB vals
-                                    for color in range(3):
-                                        temp =  (left_image[row,col,color] -right_image[row+x+dis,col +y +dis,color])**2
-                                        ssdd_tensor[row,col,dis] +=temp
-
-        '''                
-
-                     
-
+                ssdd_tensor[:,:,dis]+= temp    
 
         ssdd_tensor -= ssdd_tensor.min()
         ssdd_tensor /= ssdd_tensor.max()
@@ -110,9 +85,13 @@ class Solution:
         """INSERT YOUR CODE HERE"""
         for i in range(ssdd_tensor.shape[0]):
             for j in range(ssdd_tensor.shape[1]):
-                min = np.amin(ssdd_tensor[i,j])
-                temp = np.where(ssdd_tensor[i,j] == min)   
-                label_no_smooth[i,j] = np.argmin(ssdd_tensor[i,j,:])
+                #min = np.amin(ssdd_tensor[i,j,:])
+                #temp1 = np.argmin(ssdd_tensor[i,j,:]) 
+                #temp = np.where(ssdd_tensor[i,j,:]== min )
+                #temp2= temp[0]
+                #if temp2[0] != temp1:
+                #    print(f' the value of np where {temp2[0]} is diffrent from arg min {temp1}')
+                label_no_smooth[i,j] = np.argmin(ssdd_tensor[i,j,:]) 
         return label_no_smooth.astype(int)
 
     @staticmethod
@@ -133,7 +112,38 @@ class Solution:
         """
         num_labels, num_of_cols = c_slice.shape[0], c_slice.shape[1]
         l_slice = np.zeros((num_labels, num_of_cols))
+        #initialize the DB
+        l_slice[:,0] = c_slice[:,0]
+        
         """INSERT YOUR CODE HERE"""
+        M= np.zeros((num_labels, num_of_cols))
+        #initialize the start penlety to be a inf num so we couled find the 
+        #path
+        M[:,0] = l_slice[:,0]
+        
+        for col in range(1,num_of_cols):
+            for d in range(num_labels):
+                M[d,col]=l_slice[d,col-1]
+                temp3= l_slice[d,col-1]
+                if  d>0 :
+                    M[d,col] = min(M[d,col],p1 +l_slice[d-1,col-1] )
+                if (d+1)<num_labels:
+                        M[d,col] = min(M[d,col],p1 +l_slice[d+1,col-1]) 
+                for k in range(d+2,num_labels):
+                    M[d,col] =min(M[d,col],p2 + l_slice[k,col-1])
+                for k in range(d-2,-1,-1):
+                    M[d,col] = min(M[d,col],p2 + l_slice[k,col-1])
+
+                      
+                temp =  M[d,col]; 
+                
+                temp1 = l_slice[:,col-1]
+                temp2 = min(temp1)
+                l_slice[d,col]= c_slice[d,col] + M[d,col] - min(l_slice[:,col-1])
+
+                    
+
+
         return l_slice
 
     def dp_labeling(self,
@@ -158,8 +168,50 @@ class Solution:
             Dynamic Programming depth estimation matrix of shape HxW.
         """
         l = np.zeros_like(ssdd_tensor)
+        for row in range(ssdd_tensor.shape[0]):
+        
+               temp= ssdd_tensor[row,:,:]
+               l[row,:]= self.dp_grade_slice(ssdd_tensor[row,:,:].T,p1,p2).T
         """INSERT YOUR CODE HERE"""
         return self.naive_labeling(l)
+
+    def extract_slices(self,
+                    ssdd_tensor: np.ndarray,
+                    direction: int,
+                    p1: float,
+                    p2: float) -> np.ndarray:
+        '''
+    Args:
+            ssdd_tensor: A tensor of the sum of squared differences for every
+            pixel in a window of size win_size X win_size, for the
+            2*dsp_range + 1 possible disparity values.
+            direction: the wanted direction to compute the depth astimation along it
+            p1: penalty for taking disparity value with 1 offset.
+            p2: penalty for taking disparity value more than 2 offset.
+        Returns:
+            Dynamic Programming depth estimation matrix of shape HxW.
+
+        '''
+        if direction ==1:
+            return self.dp_labeling(ssdd_tensor,p1,p2)
+        elif direction == 3:
+            temp = (self.dp_labeling(np.rot90(ssdd_tensor),p1,p2)).T
+            
+            return  temp
+        elif direction == 5:
+            temp = self.dp_labeling(np.fliplr(ssdd_tensor),p1,p2)
+            return  np.fliplr(temp)
+        elif direction == 7:
+            temp = self.dp_labeling(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
+            return  np.fliplr(temp).T
+        elif direction == 2:
+            temp = ssdd_tensor
+            temp = rotate(temp, angle=45, reshape=False) #self.dp_labeling(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
+            temp2 = self.dp_labeling(temp,p1,p2)
+            return  rotate(temp2, angle=-45, reshape=False)
+        return
+         
+
 
     def dp_labeling_per_direction(self,
                                   ssdd_tensor: np.ndarray,

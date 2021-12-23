@@ -51,16 +51,21 @@ def load_data(is_your_data=False):
 
 
 def main():
+
+    COST1 = 0.5
+    COST2 = 3.0
+    WIN_SIZE = 3
+    DISPARITY_RANGE = 20
     left_image, right_image = load_data()
     solution = Solution()
     # Compute Sum-Square-Diff distance
     tt = tic()
     ssdd = solution.ssd_distance(left_image.astype(np.float64),
                                  right_image.astype(np.float64),
-                                 win_size=3,#WIN_SIZE,
-                                 dsp_range=  20)#DISPARITY_RANGE)
+                                 win_size=WIN_SIZE,
+                                 dsp_range=  DISPARITY_RANGE)
     print(f"SSDD calculation done in {toc(tt):.4f}[seconds]")
-
+    '''
     # Construct naive disparity image
     tt = tic()
     label_map = solution.naive_labeling(ssdd)
@@ -103,7 +108,36 @@ def main():
     plt.subplot(1, 3, 3)
     plt.imshow(right_image)
     plt.title('Right Image')
+    '''
+    # Smooth disparity image - Dynamic Programming
+    tt = tic()
+    label_smooth_dp = solution.extract_slices(ssdd,2, COST1, COST2)
+    print(f"Dynamic Programming done in {toc(tt):.4f}[seconds]")
 
+    # plot the left image and the estimated depth
+    plt.figure()
+    plt.subplot(1, 2, 1)
+    plt.imshow(left_image)
+    plt.title('Source Image')
+    plt.subplot(1, 2, 2)
+    plt.imshow(label_smooth_dp)
+    plt.colorbar()
+    plt.title('Smooth Depth - DP')
+
+    # Compute forward map of the left image to the right image.
+    mapped_image_smooth_dp = forward_map(left_image, labels=label_smooth_dp)
+    # plot left image, forward map image and right image
+    plt.figure()
+    plt.subplot(1, 3, 1)
+    plt.imshow(left_image)
+    plt.title('Source Image')
+    plt.subplot(1, 3, 2)
+    plt.imshow(mapped_image_smooth_dp)
+    plt.title('Smooth Forward map - DP')
+    plt.subplot(1, 3, 3)
+    plt.imshow(right_image)
+    plt.title('Right Image')
+    
     # Generate a dictionary which maps each direction to a label map:
     tt = tic()
     direction_to_vote = solution.dp_labeling_per_direction(ssdd, COST1, COST2)
