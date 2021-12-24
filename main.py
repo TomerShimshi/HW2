@@ -111,7 +111,7 @@ def main():
     '''
     # Smooth disparity image - Dynamic Programming
     tt = tic()
-    label_smooth_dp = solution.extract_slices(ssdd,2, COST1, COST2)
+    label_smooth_dp = solution.extract_slices(ssdd,8, COST1, COST2)
     print(f"Dynamic Programming done in {toc(tt):.4f}[seconds]")
 
     # plot the left image and the estimated depth

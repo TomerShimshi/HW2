@@ -205,13 +205,66 @@ class Solution:
             temp = self.dp_labeling(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
             return  np.fliplr(temp).T
         elif direction == 2:
-            temp = ssdd_tensor
-            temp = rotate(temp, angle=45, reshape=False) #self.dp_labeling(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
-            temp2 = self.dp_labeling(temp,p1,p2)
-            return  rotate(temp2, angle=-45, reshape=False)
+            return self.dp_diag_labeling(ssdd_tensor,p1,p2)
+        elif direction == 4:
+            temp = self.dp_diag_labeling(np.fliplr(ssdd_tensor),p1,p2)
+            return  np.fliplr(temp)
+        elif direction == 6:
+            temp = self.dp_diag_labeling(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
+            return  np.fliplr(np.fliplr(temp).T)
+        elif direction == 8:
+            temp = self.dp_diag_labeling(np.rot90(ssdd_tensor),p1,p2).T
+            #return np.rot90(np.fliplr(np.fliplr(temp).T))
+            return np.fliplr(temp)
         return
          
+    def dp_diag_labeling(self,
+                    ssdd_tensor: np.ndarray,
+                    p1: float,
+                    p2: float) -> np.ndarray:
+        """Estimate a depth map using Dynamic Programming.
 
+        (1) Call dp_grade_slice on each row slice of the ssdd tensor.
+        (2) Store each slice in a corresponding l tensor (of shape as ssdd).
+        (3) Finally, for each pixel in l (along each row and column), choose
+        the best disparity value. That is the disparity value which
+        corresponds to the lowest l value in that pixel.
+
+        Args:
+            ssdd_tensor: A tensor of the sum of squared differences for every
+            pixel in a window of size win_size X win_size, for the
+            2*dsp_range + 1 possible disparity values.
+            p1: penalty for taking disparity value with 1 offset.
+            p2: penalty for taking disparity value more than 2 offset.
+        Returns:
+            Dynamic Programming depth estimation matrix of shape HxW.
+        """
+        l = np.zeros_like(ssdd_tensor)
+        x_axis = np.arange(ssdd_tensor.shape[1])
+        y_axis = np.arange(ssdd_tensor.shape[0])
+        xx,yy= np.meshgrid(x_axis, y_axis, sparse=False, indexing='xy')
+        
+        for col in range(ssdd_tensor.shape[1]):
+        
+               temp= ssdd_tensor.diagonal(col)
+               temp2= xx.diagonal(col)
+               temp3 = yy.diagonal(col)
+               location = [temp2,temp3]
+               l[location[1],location[0],:]= self.dp_grade_slice(temp,p1,p2).T
+        
+        for row in range(ssdd_tensor.shape[0]):
+        
+               temp= ssdd_tensor.diagonal(-row)
+               temp2= xx.diagonal(-row)
+               temp3 = yy.diagonal(-row)
+               location = [temp2,temp3]
+               l[location[1],location[0],:]= self.dp_grade_slice(temp,p1,p2).T
+
+               
+               
+       
+        """INSERT YOUR CODE HERE"""
+        return self.naive_labeling(l)
 
     def dp_labeling_per_direction(self,
                                   ssdd_tensor: np.ndarray,
