@@ -34,9 +34,10 @@ def forward_map(left_image, labels):
     for row in range(left_image.shape[0]):
         cols = range(left_image.shape[1])
         mapped[row,
-               np.clip(cols - labels[row, ...], 0, left_image.shape[1] - 1),
+               np.clip(cols + labels[row, ...], 0, left_image.shape[1] - 1),
                ...] = left_image[row, cols, ...]
     return mapped
+
 
 
 def load_data(is_your_data=False):
@@ -80,6 +81,19 @@ def main():
     plt.colorbar()
     plt.title('Naive Depth')
 
+    mapped_image_smooth_dp = forward_map(left_image, labels=label_map)
+
+    plt.figure()
+    plt.subplot(1, 3, 1)
+    plt.imshow(left_image)
+    plt.title('Source Image')
+    plt.subplot(1, 3, 2)
+    plt.imshow(mapped_image_smooth_dp)
+    plt.title('Smooth Forward map - DP')
+    plt.subplot(1, 3, 3)
+    plt.imshow(right_image)
+    plt.title('Right Image')
+
     # Smooth disparity image - Dynamic Programming
     tt = tic()
     label_smooth_dp = solution.dp_labeling(ssdd, COST1, COST2)
@@ -108,36 +122,67 @@ def main():
     plt.subplot(1, 3, 3)
     plt.imshow(right_image)
     plt.title('Right Image')
-    '''
-    # Smooth disparity image - Dynamic Programming
-    tt = tic()
-    label_smooth_dp = solution.extract_slices(ssdd,8, COST1, COST2)
-    print(f"Dynamic Programming done in {toc(tt):.4f}[seconds]")
+    
 
-    # plot the left image and the estimated depth
+     # Smooth disparity image - Semi-Global Mapping
+    tt = tic()
+    label_smooth_sgm = solution.sgm_labeling(ssdd, COST1, COST2)
+    print(f"SGM done in {toc(tt):.4f}[seconds]")
+
+    # Plot Semi-Global Mapping result:
     plt.figure()
     plt.subplot(1, 2, 1)
     plt.imshow(left_image)
     plt.title('Source Image')
     plt.subplot(1, 2, 2)
-    plt.imshow(label_smooth_dp)
+    plt.imshow(label_smooth_sgm)
     plt.colorbar()
-    plt.title('Smooth Depth - DP')
+    plt.title('Smooth Depth - SGM')
 
-    # Compute forward map of the left image to the right image.
-    mapped_image_smooth_dp = forward_map(left_image, labels=label_smooth_dp)
-    # plot left image, forward map image and right image
+    
+    # Plot the forward map based on the Semi-Global Mapping result:
+    mapped_image_smooth_sgm = forward_map(left_image, labels=label_smooth_sgm)
     plt.figure()
     plt.subplot(1, 3, 1)
     plt.imshow(left_image)
     plt.title('Source Image')
     plt.subplot(1, 3, 2)
-    plt.imshow(mapped_image_smooth_dp)
-    plt.title('Smooth Forward map - DP')
+    plt.imshow(mapped_image_smooth_sgm)
+    plt.title('Smooth Forward map - SGM')
     plt.subplot(1, 3, 3)
     plt.imshow(right_image)
     plt.title('Right Image')
+
+
     
+    # Smooth disparity image - Semi-Global Mapping
+    tt = tic()
+    label_smooth_sgm = solution.sgm_labeling(ssdd, COST1, COST2)
+    print(f"SGM done in {toc(tt):.4f}[seconds]")
+
+    # Plot Semi-Global Mapping result:
+    plt.figure()
+    plt.subplot(1, 2, 1)
+    plt.imshow(left_image)
+    plt.title('Source Image')
+    plt.subplot(1, 2, 2)
+    plt.imshow(label_smooth_sgm)
+    plt.colorbar()
+    plt.title('Smooth Depth - SGM')
+
+    # Plot the forward map based on the Semi-Global Mapping result:
+    mapped_image_smooth_sgm = forward_map(left_image, labels=label_smooth_sgm)
+    plt.figure()
+    plt.subplot(1, 3, 1)
+    plt.imshow(left_image)
+    plt.title('Source Image')
+    plt.subplot(1, 3, 2)
+    plt.imshow(mapped_image_smooth_sgm)
+    plt.title('Smooth Forward map - SGM')
+    plt.subplot(1, 3, 3)
+    plt.imshow(right_image)
+    plt.title('Right Image')
+
     # Generate a dictionary which maps each direction to a label map:
     tt = tic()
     direction_to_vote = solution.dp_labeling_per_direction(ssdd, COST1, COST2)
@@ -185,7 +230,7 @@ def main():
     plt.subplot(1, 3, 3)
     plt.imshow(right_image)
     plt.title('Right Image')
-
+    '''
     ###########################################################################
     ########################### YOUR IMAGE PLAYGROUND #########################
     ###########################################################################
@@ -203,6 +248,20 @@ def main():
                                       win_size=WIN_SIZE,
                                       dsp_range=DISPARITY_RANGE)
     print(f"SSDD calculation on your image took: {toc(tt):.4f}[seconds]")
+
+     # Construct naive disparity image
+    tt = tic()
+    label_map = solution.naive_labeling(your_ssdd)
+    print(f"Naive labeling done in {toc(tt):.4f}[seconds]")
+
+    # plot the left image and the estimated depth
+    fig = plt.figure()
+    plt.subplot(1, 2, 1)
+    plt.imshow(left_image)
+    plt.subplot(1, 2, 2)
+    plt.imshow(label_map)
+    plt.colorbar()
+    plt.title('Naive Depth')
 
     # plot all directions as well as the image, in the center of the plot
     tt = tic()

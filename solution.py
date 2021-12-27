@@ -48,7 +48,13 @@ class Solution:
         
             #plt.imshow(temp_right_img)
             temp_right_img=temp_right_img[:,dsp_range:-dsp_range,:]
-            
+            '''
+            if (dis% 3==0) :
+                plt.figure()
+        
+                plt.imshow(temp_right_img)
+
+            '''
             calc_movment= (left_image-temp_right_img)**2
             for color in range(3):
                 #now we can sum over the colors
@@ -91,7 +97,9 @@ class Solution:
                 #temp2= temp[0]
                 #if temp2[0] != temp1:
                 #    print(f' the value of np where {temp2[0]} is diffrent from arg min {temp1}')
-                label_no_smooth[i,j] = np.argmin(ssdd_tensor[i,j,:]) 
+                temp1 = ssdd_tensor[i,j,:]  
+                temp=np.argmin(ssdd_tensor[i,j,:])
+                label_no_smooth[i,j] = temp
         return label_no_smooth.astype(int)
 
     @staticmethod
@@ -129,16 +137,17 @@ class Solution:
                     M[d,col] = min(M[d,col],p1 +l_slice[d-1,col-1] )
                 if (d+1)<num_labels:
                         M[d,col] = min(M[d,col],p1 +l_slice[d+1,col-1]) 
+                for k in range(2,num_labels):
+                    if (d+k) < num_labels:
+                       M[d,col] =min(M[d,col],p2 + l_slice[d+k,col-1])  
+                    if (d-k) >= 0:
+                        M[d,col] =min(M[d,col],p2 + l_slice[d-k,col-1])  
+                '''
                 for k in range(d+2,num_labels):
                     M[d,col] =min(M[d,col],p2 + l_slice[k,col-1])
                 for k in range(d-2,-1,-1):
                     M[d,col] = min(M[d,col],p2 + l_slice[k,col-1])
-
-                      
-                temp =  M[d,col]; 
-                
-                temp1 = l_slice[:,col-1]
-                temp2 = min(temp1)
+                '''
                 l_slice[d,col]= c_slice[d,col] + M[d,col] - min(l_slice[:,col-1])
 
                     
@@ -171,9 +180,41 @@ class Solution:
         for row in range(ssdd_tensor.shape[0]):
         
                temp= ssdd_tensor[row,:,:]
-               l[row,:]= self.dp_grade_slice(ssdd_tensor[row,:,:].T,p1,p2).T
+               temp2=self.dp_grade_slice(ssdd_tensor[row,:,:].T,p1,p2).T
+               l[row,:]= temp2
         """INSERT YOUR CODE HERE"""
         return self.naive_labeling(l)
+
+    
+    def dp_labeling_L(self,
+                    ssdd_tensor: np.ndarray,
+                    p1: float,
+                    p2: float) -> np.ndarray:
+        """Estimate a depth map using Dynamic Programming.
+
+        (1) Call dp_grade_slice on each row slice of the ssdd tensor.
+        (2) Store each slice in a corresponding l tensor (of shape as ssdd).
+        (3) Finally, for each pixel in l (along each row and column), choose
+        the best disparity value. That is the disparity value which
+        corresponds to the lowest l value in that pixel.
+
+        Args:
+            ssdd_tensor: A tensor of the sum of squared differences for every
+            pixel in a window of size win_size X win_size, for the
+            2*dsp_range + 1 possible disparity values.
+            p1: penalty for taking disparity value with 1 offset.
+            p2: penalty for taking disparity value more than 2 offset.
+        Returns:
+            Dynamic Programming depth estimation matrix of shape HxWxd.
+        """
+        l = np.zeros_like(ssdd_tensor)
+        for row in range(ssdd_tensor.shape[0]):
+        
+               temp= ssdd_tensor[row,:,:]
+               l[row,:]= self.dp_grade_slice(ssdd_tensor[row,:,:].T,p1,p2).T
+        """INSERT YOUR CODE HERE"""
+        return (l)
+
 
     def extract_slices(self,
                     ssdd_tensor: np.ndarray,
@@ -193,29 +234,34 @@ class Solution:
 
         '''
         if direction ==1:
-            return self.dp_labeling(ssdd_tensor,p1,p2)
+            return self.dp_labeling_L(ssdd_tensor,p1,p2)
         elif direction == 3:
-            temp = (self.dp_labeling(np.rot90(ssdd_tensor),p1,p2)).T
-            
-            return  temp
+            temp = (self.dp_labeling_L(np.rot90(ssdd_tensor),p1,p2))
+            temp2 =np.flipud(np.fliplr(np.rot90(temp)))
+            return  temp2
         elif direction == 5:
-            temp = self.dp_labeling(np.fliplr(ssdd_tensor),p1,p2)
+            temp = self.dp_labeling_L(np.fliplr(ssdd_tensor),p1,p2)
             return  np.fliplr(temp)
         elif direction == 7:
-            temp = self.dp_labeling(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
-            return  np.fliplr(temp).T
+            temp = self.dp_labeling_L(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
+            #temp2 = np.fliplr(temp).T 
+            temp2 = np.fliplr(np.rot90(temp))
+            return  temp2
         elif direction == 2:
-            return self.dp_diag_labeling(ssdd_tensor,p1,p2)
+            return self.dp_diag_labeling_L(ssdd_tensor,p1,p2)
         elif direction == 4:
-            temp = self.dp_diag_labeling(np.fliplr(ssdd_tensor),p1,p2)
+            temp = self.dp_diag_labeling_L(np.fliplr(ssdd_tensor),p1,p2)
             return  np.fliplr(temp)
         elif direction == 6:
-            temp = self.dp_diag_labeling(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
-            return  np.fliplr(np.fliplr(temp).T)
+            temp = self.dp_diag_labeling_L(np.fliplr(np.rot90(ssdd_tensor)),p1,p2)
+            temp2 = np.fliplr(np.rot90(temp))
+            #return  np.fliplr(np.fliplr(temp).T)
+            return  temp2
         elif direction == 8:
-            temp = self.dp_diag_labeling(np.rot90(ssdd_tensor),p1,p2).T
+            temp = self.dp_diag_labeling_L(np.rot90(ssdd_tensor),p1,p2)
+            temp2 = np.flipud(np.fliplr(np.rot90(temp)))
             #return np.rot90(np.fliplr(np.fliplr(temp).T))
-            return np.fliplr(temp)
+            return temp2
         return
          
     def dp_diag_labeling(self,
@@ -266,6 +312,54 @@ class Solution:
         """INSERT YOUR CODE HERE"""
         return self.naive_labeling(l)
 
+    def dp_diag_labeling_L(self,
+                    ssdd_tensor: np.ndarray,
+                    p1: float,
+                    p2: float) -> np.ndarray:
+        """Estimate a depth map using Dynamic Programming.
+
+        (1) Call dp_grade_slice on each row slice of the ssdd tensor.
+        (2) Store each slice in a corresponding l tensor (of shape as ssdd).
+        (3) Finally, for each pixel in l (along each row and column), choose
+        the best disparity value. That is the disparity value which
+        corresponds to the lowest l value in that pixel.
+
+        Args:
+            ssdd_tensor: A tensor of the sum of squared differences for every
+            pixel in a window of size win_size X win_size, for the
+            2*dsp_range + 1 possible disparity values.
+            p1: penalty for taking disparity value with 1 offset.
+            p2: penalty for taking disparity value more than 2 offset.
+        Returns:
+            Dynamic Programming depth estimation matrix of shape HxWxd.
+        """
+        l = np.zeros_like(ssdd_tensor)
+        x_axis = np.arange(ssdd_tensor.shape[1])
+        y_axis = np.arange(ssdd_tensor.shape[0])
+        xx,yy= np.meshgrid(x_axis, y_axis, sparse=False, indexing='xy')
+        
+        for col in range(ssdd_tensor.shape[1]):
+        
+               temp= ssdd_tensor.diagonal(col)
+               temp2= xx.diagonal(col)
+               temp3 = yy.diagonal(col)
+               location = [temp2,temp3]
+               l[location[1],location[0],:]= self.dp_grade_slice(temp,p1,p2).T
+        
+        for row in range(ssdd_tensor.shape[0]):
+        
+               temp= ssdd_tensor.diagonal(-row)
+               temp2= xx.diagonal(-row)
+               temp3 = yy.diagonal(-row)
+               location = [temp2,temp3]
+               l[location[1],location[0],:]= self.dp_grade_slice(temp,p1,p2).T
+
+               
+               
+       
+        """INSERT YOUR CODE HERE"""
+        return (l)
+
     def dp_labeling_per_direction(self,
                                   ssdd_tensor: np.ndarray,
                                   p1: float,
@@ -296,8 +390,11 @@ class Solution:
         """
         num_of_directions = 8
         l = np.zeros_like(ssdd_tensor)
+        
         direction_to_slice = {}
         """INSERT YOUR CODE HERE"""
+        for dir in range(1,num_of_directions+1):
+            direction_to_slice[dir]= self.naive_labeling(self.extract_slices(ssdd_tensor,dir,p1,p1))
         return direction_to_slice
 
     def sgm_labeling(self, ssdd_tensor: np.ndarray, p1: float, p2: float):
@@ -324,5 +421,13 @@ class Solution:
         """
         num_of_directions = 8
         l = np.zeros_like(ssdd_tensor)
+        #temp1= self.extract_slices(ssdd_tensor,8,p1,p1)
         """INSERT YOUR CODE HERE"""
+        
+        for dir in range(1,num_of_directions+1):
+            temp = self.extract_slices(ssdd_tensor,dir,p1,p1)
+            l+=temp
+        l=(l/num_of_directions)
+        
         return self.naive_labeling(l)
+        #return self.naive_labeling(temp1)
