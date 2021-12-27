@@ -252,16 +252,7 @@ def main():
      # Construct naive disparity image
     tt = tic()
     label_map = solution.naive_labeling(your_ssdd)
-    print(f"Naive labeling done in {toc(tt):.4f}[seconds]")
 
-    # plot the left image and the estimated depth
-    fig = plt.figure()
-    plt.subplot(1, 2, 1)
-    plt.imshow(left_image)
-    plt.subplot(1, 2, 2)
-    plt.imshow(label_map)
-    plt.colorbar()
-    plt.title('Naive Depth')
 
     # plot all directions as well as the image, in the center of the plot
     tt = tic()
